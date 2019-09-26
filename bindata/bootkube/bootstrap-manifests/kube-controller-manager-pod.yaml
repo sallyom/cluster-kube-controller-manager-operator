@@ -12,6 +12,33 @@ spec:
   restartPolicy: Always
   hostNetwork: true
   containers:
+  - name: cluster-policy-controller
+    image: quay.io/openshift/origin-cluster-policy-controller:v4.3
+    imagePullPolicy: {{ .ImagePullPolicy }}
+    ports:
+      - containerPort: 10357
+    command: ["cluster-policy-controller", "start"]
+    args:
+    - --config=/etc/kubernetes/config/{{ .ConfigFileName }}
+    - --kubeconfig=/etc/kubernetes/secrets/kubeconfig
+    - --alsologtostderr
+    - --log-file=/var/log/bootstrap-control-plane/cluster-policy-controller.log
+    - -v=2
+    volumeMounts:
+    - mountPath: /etc/kubernetes/secrets
+      name: secrets
+    - mountPath: /etc/kubernetes/config
+      name: config
+      readOnly: true
+    - mountPath: /var/log/bootstrap-control-plane
+      name: logs
+    livenessProbe:
+      httpGet:
+        scheme: HTTPS
+        port: 10357
+        path: healthz
+      initialDelaySeconds: 45
+      timeoutSeconds: 10
   - name: kube-controller-manager
     image: {{ .Image }}
     imagePullPolicy: {{ .ImagePullPolicy }}
